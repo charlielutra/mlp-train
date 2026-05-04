@@ -320,7 +320,7 @@ def _add_energy_error_histogram(
 
 
 def _add_force_error_histogram(
-    config_set, axis, index=None, print_structures=True, N=5
+    config_set, axis, component_wise=False, index=None, print_structures=True, N=5
 ) -> None:
     """
     Add histogram of force errors
@@ -345,7 +345,12 @@ def _add_force_error_histogram(
 
     force_errors = np.abs(np.array(y) - np.array(x)) * 1000
 
+    print(force_errors.shape)
+
+    
     force_errors_all = np.concatenate(np.abs(np.array(y) - np.array(x)) * 1000)
+
+    print(force_errors_all.shape)
 
     min_f = min(force_errors_all)
     max_f = max(force_errors_all)
@@ -367,10 +372,9 @@ def _add_force_error_histogram(
         axis, x=np.array(x), y=np.array(y), unit='meV Å$^{-1}$'
     )
 
-    rmse = get_rmse(x=np.array(x), y=np.array(y))
+    # rmse = get_rmse(x=np.array(x), y=np.array(y))
 
     max_text = get_max_text
-
 
     if index is not None:
         axis.set_title(f'Indices {index}')
@@ -385,7 +389,7 @@ def _add_force_error_histogram(
     if print_structures:
         data = mlptrain.ConfigurationSet()
         for i, structure in enumerate(config_set):
-            if any(force_errors[i] >= N * mad):
+            if any(force_errors[i] >= N * rmse):
                 data.append(structure)
                 print(f"High force error found in structure with index {i}")
                 print(f"Atom index responsible: {np.argmax(force_errors[i])}")
@@ -567,6 +571,26 @@ def _add_max_and_mad(axis, x, y, unit):
     return mad
 
 
+def _add_rmse_and_max(axis, x, y, unit):
+    """
+    Add an annotation of the RMSE and maximum (component-wise!!) value between the data
+    ---------------------------------------------------------------
+    Arguments:
+       x,y : Non-modified values
+       unit: (str)
+    """
+    #mad = np.mean(np.abs(x - y)) * 1000
+    rmse = get_rmse(x, y)
+
+    rmse_annotation = get_metric_text("RMSE", rmse, unit)
+    max_annotation = f'MAX = {np.max(np.abs(x - y))*1000:.1f} {unit}'
+
+    annotate_axis(axis, [rmse_annotation, max_annotation])
+
+    return rmse
+
+
+
 def get_mad_text(x, y, unit):
     """ Return tuple: (MAD, MAD_annotation)
     """
@@ -585,8 +609,7 @@ def get_max_text(x, y, unit):
 
 
 def get_rmse(x, y):
-    slope, intercept, r, p, se = linregress(x, y)
-    rmse = r**2
+    rmse = np.sqrt(np.mean((actual - predicted) ** 2))
     return rmse
 
 
