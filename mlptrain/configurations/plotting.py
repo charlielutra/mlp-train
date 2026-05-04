@@ -332,9 +332,21 @@ def _add_force_error_histogram(
     N: Multiplication of MAD for force errors
     """
 
+    if component_wise: 
+        logger.info("Warning: Component-wise force MAD is not rotationally invariant -> a poor metric")
+    else:
+        pass
+
+    # Current implementation here is not component-wise - it uses magnitudes
+
     x, y = [], []
     for config in config_set:
+        
+        print("config.forces.true.shape", config.forces.true.shape)
+        print("np.linalg.norm(config.forces.true, axis=1).shape", np.linalg.norm(config.forces.true, axis=1).shape)
+
         if index is None:
+            
             x.append(np.linalg.norm(config.forces.true, axis=1))
             y.append(np.linalg.norm(config.forces.predicted, axis=1))
         else:
@@ -478,7 +490,7 @@ def error_force_histogram_per_elements(
         )
 
         ax.set_title(f'Element {elem}')
-        _add_max_and_mad(ax, x=np.array(x), y=np.array(y), unit='meV Å$^{-1}$')
+        _add_rmse_and_max(ax, x=np.array(x), y=np.array(y), unit='meV Å$^{-1}$')
 
         ax.set_xlim(min_f, max_f)
 
@@ -609,7 +621,7 @@ def get_max_text(x, y, unit):
 
 
 def get_rmse(x, y):
-    rmse = np.sqrt(np.mean((actual - predicted) ** 2))
+    rmse = np.sqrt(np.mean((x - y) ** 2))
     return rmse
 
 
