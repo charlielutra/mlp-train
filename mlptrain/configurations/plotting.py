@@ -359,9 +359,18 @@ def _add_force_error_histogram(
         ax=axis,
     )
 
-    mad = _add_max_and_mad(
+    # mad = _add_max_and_mad(
+    #     axis, x=np.array(x), y=np.array(y), unit='meV Å$^{-1}$'
+    # )
+
+    rmse = _add_rmse_and_max(
         axis, x=np.array(x), y=np.array(y), unit='meV Å$^{-1}$'
     )
+
+    rmse = get_rmse(x=np.array(x), y=np.array(y))
+
+    max_text = get_max_text
+
 
     if index is not None:
         axis.set_title(f'Indices {index}')
@@ -512,8 +521,19 @@ def _add_r_sq_and_mad(axis, x, y, unit, xs=None, ys=None):
             ha='right',
             va='bottom',
         )
+
+        r_sq_text = f'$R^2$ = {r**2:.3f}'
+        mad_rel_text = f' MAD$_{{relative}}$ = {np.mean(np.abs(xs - ys))*factor:.1f} {unit}'
+        mad_text = f'MAD = {np.mean(np.abs(x - y))*factor:.1f} {unit}'
+
+        # annotate_axis(axis, [r_sq_text,mad_rel_text,mad_text], xy = (1,0))
+
     else:
         slope, intercept, r, p, se = linregress(x, y)
+
+        r_sq_text = f'$R^2$ = {r**2:.3f}'
+        mad_text = f'MAD = {np.mean(np.abs(x - y))*factor:.1f} {unit}',
+
         axis.annotate(
             f'$R^2$ = {r**2:.3f}\n'
             f'MAD = {np.mean(np.abs(x - y))*factor:.1f} {unit}',
@@ -539,19 +559,63 @@ def _add_max_and_mad(axis, x, y, unit):
     """
     mad = np.mean(np.abs(x - y)) * 1000
 
+    mad_annotation = get_mad_text(x, y, unit)
+    max_annotation = f'MAX = {np.max(np.abs(x - y))*1000:.1f} {unit}'
+
+    annotate_axis(axis, [mad_annotation, max_annotation])
+
+    return mad
+
+
+def get_mad_text(x, y, unit):
+    """ Return tuple: (MAD, MAD_annotation)
+    """
+
+    mad = np.mean(np.abs(x - y)) * 1000
+    mad_annotate_text = f'MAD = {mad:.3f} {unit}'
+
+    return mad_annotate_text
+
+
+
+def get_max_text(x, y, unit):
+    max_annotate_text = f'MAX = {np.max(np.abs(x - y))*1000:.1f} {unit}'
+
+    return max_annotate_text
+
+
+def get_rmse(x, y):
+    slope, intercept, r, p, se = linregress(x, y)
+    rmse = r**2
+    return rmse
+
+
+def get_metric_text(metric, value, unit) -> str:
+
+    annotation_text = f"{metric} = {value:.3f} {unit}"
+    return annotation_text
+
+
+def get_annotations_text(annotations_list):
+    return "\n".join(annotations_list), 
+
+
+def annotate_axis(axis, annotations_list, xy=(1, 1)) -> None:
+
+    #annotation_text = get_annotation_text(axis, x, y, unit, add_mad, add_rmse, add_max)
+
     axis.annotate(
-        f'MAD = {mad:.3f} {unit}\n'
-        f'MAX = {np.max(np.abs(x - y))*1000:.1f} {unit}',
-        xy=(1, 1),
+        "\n".join(annotations_list), 
+        xy=xy,
         xycoords='axes fraction',
         fontsize=12,
         xytext=(-5, -5),
         textcoords='offset points',
         ha='right',
-        va='top',
+        va='bottom',
     )
 
-    return mad
+    return None
 
 
 def _choose_grid(n: int, max_cols: int = 3) -> tuple[int, int]:
